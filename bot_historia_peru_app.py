@@ -1,8 +1,7 @@
 # bot_historia_peru_app.py
 # -*- coding: utf-8 -*-
 """
-🇵🇪 Bot de Historia del Perú
-Versión final – Streamlit Cloud Edition
+🇵🇪 Bot de Historia del Perú — Streamlit Cloud Edition
 Desarrollado por: Yeltsin Solano Díaz
 """
 
@@ -15,9 +14,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-# =====================================================
-# 📘 DATASET BASE — 30 Preguntas con referencias
-# =====================================================
+# =============================
+# Dataset ejemplo (30 Q&A)
+# =============================
 DATASET_30: List[Dict[str, object]] = [
     {"pregunta": "primer presidente del peru",
      "respuesta": "El primer presidente del Perú fue José de la Riva-Agüero en 1823.",
@@ -118,9 +117,9 @@ DATASET_30: List[Dict[str, object]] = [
 ]
 
 
-# =====================================================
-# 🧠 UTILIDADES Y MODELO
-# =====================================================
+# =============================
+# Utilidades y modelo
+# =============================
 def normalize_text(text: str) -> str:
     text = text.strip().lower()
     text = ''.join(c for c in unicodedata.normalize('NFD', text)
@@ -146,11 +145,12 @@ def predict(vec, X, questions, answers, sources, user_text: str, threshold: floa
     return answers[idx], score, sources[idx]
 
 
-# =====================================================
-# 🎨 INTERFAZ STREAMLIT
-# =====================================================
+# =============================
+# UI — Streamlit App
+# =============================
 def main():
-    st.set_page_config(page_title="Bot de Historia del Perú — Yeltsin Solano Díaz", page_icon="🇵🇪", layout="centered")
+    st.set_page_config(page_title="Bot de Historia del Perú — Yeltsin Solano Díaz",
+                       page_icon="🇵🇪", layout="centered")
 
     st.markdown(
         """
@@ -165,6 +165,7 @@ def main():
     st.title("🇵🇪 Bot de Historia del Perú")
     st.caption("NLP clásico: TF-IDF + similitud coseno • Fuentes confiables incluidas")
 
+    # ---- Sidebar ----
     with st.sidebar:
         st.subheader("⚙️ Configuración")
         threshold = st.slider("Umbral de confianza (coseno)", 0.0, 1.0, 0.25, 0.01)
@@ -192,30 +193,61 @@ def main():
         st.markdown("---")
         st.caption("Desarrollado por **Yeltsin Solano Díaz**")
 
+    # ---- Modelo (cacheado) ----
     vec, X, questions, answers, sources = build_bot(data)
 
+    # ---- Estado y callbacks seguros ----
     if "q" not in st.session_state:
         st.session_state["q"] = ""
 
+    def clear_q():
+        st.session_state["q"] = ""
+        if hasattr(st, "rerun"):
+            st.rerun()
+
+    def set_example(txt: str):
+        st.session_state["q"] = txt
+        if hasattr(st, "rerun"):
+            st.rerun()
+
+    # ---- Entrada principal ----
     col1, col2 = st.columns([3, 1])
     with col1:
-        user_q = st.text_input("✍️ Escribe tu pregunta", value=st.session_state["q"],
-                               placeholder="Ej. ¿Quién fue Miguel Grau?", key="q")
+        st.text_input(
+            "✍️ Escribe tu pregunta",
+            key="q",
+            placeholder="Ej. ¿Quién fue Miguel Grau?"
+        )
     with col2:
-        if st.button("Limpiar", use_container_width=True):
-            st.session_state["q"] = ""
-            if hasattr(st, "rerun"):
-                st.rerun()
+        st.write("")
+        st.button("Limpiar", use_container_width=True, on_click=clear_q)
 
+    # ---- Botones de ejemplo (con callbacks) ----
+    st.markdown("**Ejemplos rápidos:**")
+    examples = [
+        "¿Quién fue Miguel Grau?",
+        "¿Qué culturas preincas existieron?",
+        "¿Cuándo fue la Batalla de Junín?",
+        "¿Quién proclamó la independencia del Perú?",
+        "¿Qué es el Tahuantinsuyo?",
+        "¿Quién fue José Carlos Mariátegui?",
+    ]
+    ex_cols = st.columns(3)
+    for i, e in enumerate(examples):
+        ex_cols[i % 3].button(e, on_click=set_example, args=(e,))
+
+    # ---- Respuesta ----
     if st.session_state["q"]:
-        ans, sc, refs = predict(vec, X, questions, answers, sources, st.session_state["q"], threshold)
+        ans, sc, refs = predict(vec, X, questions, answers, sources,
+                                st.session_state["q"], threshold)
         st.markdown("### 🧠 Respuesta")
         st.write(ans)
-        st.caption(f"Confianza: **{sc:.3f}**")
+        st.caption(f"Confianza (similitud coseno): **{sc:.3f}**")
+
         if refs:
             st.markdown("#### 🔗 Fuentes sugeridas")
             for r in refs:
-                st.markdown(f"- [{r.get('titulo')}]({r.get('url')})")
+                st.markdown(f"- [{r.get('titulo','Fuente')}]({r.get('url','#')})")
 
     st.markdown("---")
     st.caption("Desarrollado por **Yeltsin Solano Díaz** · Hecho con ❤️ en Python + Streamlit")
