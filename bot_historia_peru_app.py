@@ -11,10 +11,6 @@ Original file is located at
 # -*- coding: utf-8 -*-
 """
 Bot de Historia del Perú — Streamlit Cloud Edition
-- TF-IDF + similitud coseno
-- 30 Q&A con fuentes confiables (embebido)
-- Carga opcional de dataset JSON
-- Control de umbral, ejemplos rápidos, y descarga del dataset
 """
 
 import json
